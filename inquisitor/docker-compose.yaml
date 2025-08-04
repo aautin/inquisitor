@@ -1,0 +1,44 @@
+services:
+  attacker:
+    build: ./attacker
+    mac_address: 02:42:ac:14:00:02
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    environment:
+      - ATTACKER_IP=172.20.0.2
+      - ATTACKER_MAC=02:42:ac:14:00:02
+      - VICTIM_IP=172.20.0.3
+      - VICTIM_MAC=02:42:ac:14:00:03
+    networks:
+      arp_net:
+        ipv4_address: 172.20.0.2
+
+  client:
+    build: ./client
+    mac_address: 02:42:ac:14:00:03
+    cap_add:
+      - NET_RAW
+    environment:
+      - SERVER_IP=172.20.0.4
+      - SERVER_PORT=21
+    networks:
+      arp_net:
+        ipv4_address: 172.20.0.3
+
+  server:
+    build: ./server
+    mac_address: 02:42:ac:14:00:04
+    environment:
+      - SERVER_IP_ACCESSIBILITY=0.0.0.0
+      - SERVER_PORT=21
+    networks:
+      arp_net:
+        ipv4_address: 172.20.0.4
+
+networks:
+  arp_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
