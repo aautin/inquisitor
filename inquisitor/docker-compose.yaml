@@ -29,6 +29,9 @@ services:
   server:
     build: ./server
     mac_address: 02:42:ac:14:00:04
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
     environment:
       - SERVER_IP_ACCESSIBILITY=0.0.0.0
       - SERVER_PORT=21
