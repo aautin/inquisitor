@@ -2,28 +2,31 @@ import os
 import ftplib
 import time
 
+import ftplib
+import time
+import subprocess
+
 def connect_to_ftp():
-    server_ip = os.getenv('SERVER_IP')
-    server_port = int(os.getenv('SERVER_PORT', 21))
-
-    print(f"[CLIENT] Attempting to connect to FTP server at {server_ip}:{server_port}", flush=True)
-
-    try:
-        # Connect to FTP server
-        ftp = ftplib.FTP()
-        ftp.connect(server_ip, server_port)
-        ftp.login()
-
-        print(f"[CLIENT] Connected to FTP server, current directory: {ftp.pwd()}", flush=True)
-
-        files = ftp.nlst()
-        print(f"[CLIENT] Files available: {files}", flush=True)
-
-        ftp.quit()
-        print(f"[CLIENT] Disconnected.\n", flush=True)
+    while True:
+        try:
+            # Create FTP connection
+            ftp = ftplib.FTP()
+            ftp.connect('172.20.0.4', 21, timeout=10)
+            ftp.login()  # Anonymous login
+            
+            print(f"[CLIENT] ✓ FTP connection successful to {ftp.getwelcome()}")
+            
+            # List directory (generates more IP traffic)
+            files = ftp.nlst()
+            print(f"[CLIENT] Directory listing: {files}")
+            
+            ftp.quit()
+            print(f"[CLIENT] FTP connection closed")
+            
+        except Exception as e:
+            print(f"[CLIENT] FTP connection failed: {e}")
         
-    except Exception as e:
-        print(f"[CLIENT] Error connecting to FTP server: {e}", flush=True)
+        time.sleep(8)  # Try every 8 seconds
 
 if __name__ == "__main__":
     while True:
