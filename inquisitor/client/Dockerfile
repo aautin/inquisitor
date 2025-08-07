@@ -1,7 +1,10 @@
-FROM python:3.10
+FROM alpine:3.13
 
-RUN apt-get update && apt-get install -y python3-pip
+RUN apk add --no-cache lftp tcpdump
 
-COPY . .
+WORKDIR /root
 
-ENTRYPOINT ["python", "-u", "script.py"]
+COPY ftp_loop.sh /root/ftp_loop.sh
+RUN chmod +x /root/ftp_loop.sh
+
+CMD ["/root/ftp_loop.sh"]

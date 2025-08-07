@@ -1,8 +1,9 @@
-FROM python:3.10
+FROM busybox
 
-RUN apt-get update && apt-get install -y python3-pip
-RUN pip install pyftpdlib
+RUN mkdir -p /home/ftp
 
-COPY . .
+COPY files /home/ftp/
 
-ENTRYPOINT ["python", "script.py"]
+EXPOSE 21
+
+ENTRYPOINT ["tcpsvd", "-vE", "0.0.0.0", "21", "ftpd", "-w", "-A", "/home/ftp"]

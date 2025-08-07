@@ -10,15 +10,19 @@ services:
       - SRC_MAC=02:42:ac:14:00:03
       - TARGET_IP=172.20.0.4
       - TARGET_MAC=02:42:ac:14:00:04
+      - MY_MAC=02:42:ac:14:00:02
     networks:
       arp_net:
         ipv4_address: 172.20.0.2
 
   client:
+    depends_on:
+      - server
     build: ./client
     mac_address: 02:42:ac:14:00:03
     cap_add:
       - NET_RAW
+      - NET_ADMIN
     environment:
       - SERVER_IP=172.20.0.4
       - SERVER_PORT=21
@@ -27,6 +31,8 @@ services:
         ipv4_address: 172.20.0.3
 
   server:
+    depends_on:
+      - attacker
     build: ./server
     mac_address: 02:42:ac:14:00:04
     cap_add:
