@@ -6,4 +6,4 @@ RUN pip install scapy
 
 COPY . .
 
-ENTRYPOINT ["python3", "inquisitor.py"]
+ENTRYPOINT python3 inquisitor.py $SRC_IP $SRC_MAC $TARGET_IP $TARGET_MAC

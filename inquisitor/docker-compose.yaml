@@ -51,3 +51,5 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/24
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
