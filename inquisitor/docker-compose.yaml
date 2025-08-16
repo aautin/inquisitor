@@ -1,49 +1,39 @@
 services:
-  attacker:
-    build: ./attacker
-    mac_address: 02:42:ac:14:00:02
+  inquisitor:
+    build: ./inquisitor
+    mac_address: $INQUISITOR_MAC
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    environment:
-      - SRC_IP=172.20.0.3
-      - SRC_MAC=02:42:ac:14:00:03
-      - TARGET_IP=172.20.0.4
-      - TARGET_MAC=02:42:ac:14:00:04
-      - MY_MAC=02:42:ac:14:00:02
+    env_file:
+      - .env
     networks:
       arp_net:
-        ipv4_address: 172.20.0.2
+        ipv4_address: $INQUISITOR_IP
 
   client:
-    depends_on:
-      - server
     build: ./client
-    mac_address: 02:42:ac:14:00:03
+    mac_address: $CLIENT_MAC
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    environment:
-      - SERVER_IP=172.20.0.4
-      - SERVER_PORT=21
+    env_file:
+      - .env
     networks:
       arp_net:
-        ipv4_address: 172.20.0.3
+        ipv4_address: $CLIENT_IP
 
   server:
-    depends_on:
-      - attacker
     build: ./server
-    mac_address: 02:42:ac:14:00:04
+    mac_address: $SERVER_MAC
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    environment:
-      - SERVER_IP_ACCESSIBILITY=0.0.0.0
-      - SERVER_PORT=21
+    env_file:
+      - .env
     networks:
       arp_net:
-        ipv4_address: 172.20.0.4
+        ipv4_address: $SERVER_IP
 
 networks:
   arp_net:
@@ -51,5 +41,3 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/24
-    driver_opts:
-      com.docker.network.bridge.enable_icc: "false"

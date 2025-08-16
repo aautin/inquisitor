@@ -1,9 +1,13 @@
-FROM busybox
+FROM alpine:latest
 
-RUN mkdir -p /home/ftp
+RUN apk add --no-cache vsftpd
+
+RUN adduser -D -s /bin/sh ftpuser && \
+    echo "ftpuser:1234" | chpasswd
 
 COPY files /home/ftp/
+RUN chown -R ftpuser:ftpuser /home/ftp
 
-EXPOSE 21
+COPY vsftpd.conf /etc/vsftpd/vsftpd.conf
 
-ENTRYPOINT ["tcpsvd", "-vE", "0.0.0.0", "21", "ftpd", "-w", "-A", "/home/ftp"]
+CMD ["vsftpd", "/etc/vsftpd/vsftpd.conf"]
