@@ -1,89 +1,78 @@
-#include <pcap.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "utils.h"
 
-typedef struct s_state{
-	char*	client_ip;
-	char*	client_mac;
-	char*	server_ip;
-	char*	server_mac;
+static void poison(state* s, const u_char* bytes, request_type type)
+{
+	if (type == SRC_TO_TARGET) {
+		if (!s->is_source_poisoned) {
+			// Here, must send ARP reply to the source with inquisitor's MAC
+			printf("Poisoning source\n");
+			s->counter++;
+		}
+	}
+	else if (type == TARGET_TO_SRC) {
+		if (!s->is_target_poisoned) {
+			// Here, must send ARP reply to the target with inquisitor's MAC
+			printf("Poisoning target\n");
+			s->counter++;
+		}
+	}
 
-	int		counter;
-	int		is_client_poisoned;
-	int		is_target_poisoned;
-}	state;
+	printf("Poisoning count: %d\n", s->counter);
+}
 
 static void packet_handler(u_char* user, const struct pcap_pkthdr* h, const u_char* bytes)
 {
 	state* s = (state*)user;
 
-	printf("Packet[%d] captured: %d bytes\n", s->counter++, h->len);
-}
+	// ARP (EtherType 0x0806)
+	if (bytes[12] == 0x08 && bytes[13] == 0x06) { // ARP frame detected
+		printf("ARP frame detected.\n");
 
-static int set_user(state** user, char** addresses)
-{
-	*user = malloc(sizeof(state));
-	if (*user == NULL)
-		return 1;
-	
-	(*user)->client_ip = addresses[0];
-	(*user)->client_mac = addresses[1];
-	(*user)->server_ip = addresses[2];
-	(*user)->server_mac = addresses[3];
+		if (s->is_source_poisoned && s->is_target_poisoned) {
+			printf("Both source and target are already poisoned.\n");
+			return;
+		}
 
-	(*user)->counter = 0;
-	(*user)->is_client_poisoned = false;
-	(*user)->is_target_poisoned = false;
+		if (bytes[20] != 0x00 || bytes[21] != 0x01) { // Not an ARP request
+			printf("Not an ARP request.\n");
+			return;
+		}
 
-	return 0;
+		request_type type = get_arp_status(bytes, s->source_mac, s->target_mac);
+		if (type != OTHER)
+			poison(s, bytes, type);
+	}
 }
 
 void listen_device(char const* name, char** addresses)
 {
-	char errbuf[PCAP_ERRBUF_SIZE];
-	pcap_t* pcap = pcap_create(name, errbuf);
-	if (pcap == NULL) {
-		fprintf(stderr, "Error creating pcap handle: %s\n", errbuf);
+	pcap_t* pcap;
+	if (set_pcap(&pcap, name) != 0)
 		return;
-	}
-
-	pcap_set_snaplen(pcap, 65535);
-	pcap_set_promisc(pcap, 1);
-	pcap_set_timeout(pcap, 1);
-	pcap_set_immediate_mode(pcap, 1);
-
-	if (pcap_activate(pcap) != 0) {
-		fprintf(stderr, "Error activating pcap: %s\n", errbuf);
-		pcap_close(pcap);
-		return;
-	}
 
 	state* user;
-	if (set_user(&user, addresses) != 0)
-		fprintf(stderr, "Error during set_user()");
-	else {
-		printf("pcap_loop()\n");
-		pcap_loop(pcap, 0, packet_handler, (u_char*) user);
+	if (set_user(&user, addresses) != 0) {
+		pcap_close(pcap);
+		return ;
 	}
 
+	pcap_loop(pcap, 0, packet_handler, (u_char*) user);
 	pcap_close(pcap);
 }
 
 int main(int argc, char **argv)
 {
+	setvbuf(stdout, NULL, _IONBF, 0);
+
 	if (argc != 5) {
-		fprintf(stderr, "Usage: %s <client_ip> <client_mac> <server_ip> <server_mac>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <source_ip> <source_mac> <target_ip> <target_mac>\n", argv[0]);
 		return 1;
 	}
 
-	setvbuf(stdout, NULL, _IONBF, 0);
-
-	printf("Client IP: %s\n", argv[1]);
-	printf("Client MAC: %s\n", argv[2]);
-	printf("Server IP: %s\n", argv[3]);
-	printf("Server MAC: %s\n", argv[4]);
+	printf("source IP: %s\n", argv[1]);
+	printf("source MAC: %s\n", argv[2]);
+	printf("target IP: %s\n", argv[3]);
+	printf("target MAC: %s\n", argv[4]);
 
 	pcap_if_t *alldevsp;
 	char error_buffer[PCAP_ERRBUF_SIZE];
