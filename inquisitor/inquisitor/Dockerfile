@@ -2,11 +2,9 @@ FROM debian:latest
 
 RUN apt update && apt install -y \
     build-essential \
-    cmake \
     libpcap-dev \
-    g++ \
-    libc6-dev \
-    linux-libc-dev
+    gcc \
+    valgrind
 
 WORKDIR /inquisitor
 
