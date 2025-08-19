@@ -1,24 +1,5 @@
 #include "utils.h"
-
-static void poison(state* s, const u_char* bytes, request_type type)
-{
-	if (type == SRC_TO_TARGET) {
-		if (!s->is_source_poisoned) {
-			// Here, must send ARP reply to the source with inquisitor's MAC
-			printf("Poisoning source\n");
-			s->counter++;
-		}
-	}
-	else if (type == TARGET_TO_SRC) {
-		if (!s->is_target_poisoned) {
-			// Here, must send ARP reply to the target with inquisitor's MAC
-			printf("Poisoning target\n");
-			s->counter++;
-		}
-	}
-
-	printf("Poisoning count: %d\n", s->counter);
-}
+#include "spoofer.h"
 
 static void packet_handler(u_char* user, const struct pcap_pkthdr* h, const u_char* bytes)
 {
@@ -26,22 +7,20 @@ static void packet_handler(u_char* user, const struct pcap_pkthdr* h, const u_ch
 
 	// ARP (EtherType 0x0806)
 	if (bytes[12] == 0x08 && bytes[13] == 0x06) { // ARP frame detected
-		printf("ARP frame detected.\n");
-
-		if (s->is_source_poisoned && s->is_target_poisoned) {
-			printf("Both source and target are already poisoned.\n");
-			return;
-		}
-
-		if (bytes[20] != 0x00 || bytes[21] != 0x01) { // Not an ARP request
+		if (bytes[20] == 0x00 && bytes[21] == 0x01)
 			printf("Not an ARP request.\n");
-			return;
-		}
-
-		request_type type = get_arp_status(bytes, s->source_mac, s->target_mac);
-		if (type != OTHER)
-			poison(s, bytes, type);
 	}
+	if (bytes[12] == 0x08 && bytes[13] == 0x00) { // IPv4 frame detected
+		// IPv4 header starts at bytes[14]
+		uint8_t ihl = bytes[14] & 0x0F; // Internet Header Length
+		uint8_t protocol = bytes[23];   // Protocol field
+
+		printf("IPv4 packet detected. Header length: %u, Protocol: %u\n", ihl, protocol);
+	}
+	else if (bytes[12] == 0x08 && bytes[13] == 0x00) { // IP frame detected
+		printf("IP frame detected.\n");
+	}
+	printf("------------\n\n");
 }
 
 void listen_device(char const* name, char** addresses)
@@ -55,6 +34,10 @@ void listen_device(char const* name, char** addresses)
 		pcap_close(pcap);
 		return ;
 	}
+
+	pthread_t	poisoner;
+	pthread_create(&poisoner, NULL, spoofer, (void*) user);
+	pthread_detach(poisoner);
 
 	pcap_loop(pcap, 0, packet_handler, (u_char*) user);
 	pcap_close(pcap);

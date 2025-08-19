@@ -59,9 +59,11 @@ int set_user(state** user, char** addresses)
 	printf("Parsed target IP: %d.%d.%d.%d\n",
 		(*user)->target_ip[0], (*user)->target_ip[1], (*user)->target_ip[2], (*user)->target_ip[3]);
 
-	(*user)->counter = 0;
 	(*user)->is_source_poisoned = false;
 	(*user)->is_target_poisoned = false;
+
+	pthread_mutex_init(&(*user)->mutex, NULL);
+	(*user)->status = KEEP_GOING;
 
 	return 0;
 }
