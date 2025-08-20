@@ -3,8 +3,11 @@
 
 # include "utils.h"
 
-void	poison(state* s);
-void	restore(state* s);
-void*	spoofer(void* arg);
+typedef struct s_spoofer {
+	state*	state;
+	pcap_t*	pcap;
+}	spoofer_t;
+
+void*	spoof(void* arg);
 
 #endif

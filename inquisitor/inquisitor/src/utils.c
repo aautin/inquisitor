@@ -1,5 +1,14 @@
 #include "utils.h"
 
+char* find_inquisitor_mac(char** envp)
+{
+	for (int i = 0; envp[i] != NULL; i++) {
+		if (strncmp(envp[i], "INQUISITOR_MAC=", 15) == 0)
+			return envp[i] + 15;
+	}
+	return NULL;
+}
+
 char** split(const char* str, char delimiter)
 {
 	char** result = malloc(4 * sizeof(char*));
@@ -25,16 +34,17 @@ char** split(const char* str, char delimiter)
 	return result;
 }
 
-int set_user(state** user, char** addresses)
+int set_user(state** user, char** addresses, char* inquisitor_mac)
 {
 	*user = malloc(sizeof(state));
 	if (*user == NULL)
 		return 1;
-	
+
 	// MAC-address conversion into raw bytes
 		for (int i = 0; i < 6; ++i) {
 		sscanf(addresses[1] + 3 * i, "%2hhx", &((*user)->source_mac[i]));
 		sscanf(addresses[3] + 3 * i, "%2hhx", &((*user)->target_mac[i]));
+		sscanf(inquisitor_mac + 3 * i, "%2hhx", &((*user)->inquisitor_mac[i]));
 	}
 
 	// MAC-address raw bytes print for debugging
@@ -44,6 +54,9 @@ int set_user(state** user, char** addresses)
 	printf("Parsed target MAC: %d:%d:%d:%d:%d:%d\n",
 		(*user)->target_mac[0], (*user)->target_mac[1], (*user)->target_mac[2],
 		(*user)->target_mac[3], (*user)->target_mac[4], (*user)->target_mac[5]);
+	printf("Parsed inquisitor MAC: %d:%d:%d:%d:%d:%d\n",
+		(*user)->inquisitor_mac[0], (*user)->inquisitor_mac[1], (*user)->inquisitor_mac[2],
+		(*user)->inquisitor_mac[3], (*user)->inquisitor_mac[4], (*user)->inquisitor_mac[5]);
 
 	// IP-address conversion into raw bytes
 	char** ip_source = split(addresses[0], '.');
@@ -59,6 +72,7 @@ int set_user(state** user, char** addresses)
 	printf("Parsed target IP: %d.%d.%d.%d\n",
 		(*user)->target_ip[0], (*user)->target_ip[1], (*user)->target_ip[2], (*user)->target_ip[3]);
 
+	(*user)->count = 0;
 	(*user)->is_source_poisoned = false;
 	(*user)->is_target_poisoned = false;
 
@@ -91,11 +105,10 @@ int set_pcap(pcap_t** pcap, char const* name)
 	return 0;
 }
 
-int get_arp_status(const u_char* bytes, char source_mac[6], char target_mac[6])
+poison_t	get_status(pthread_mutex_t* mutex, poison_t* status)
 {
-	// Check if the ARP frame is concerned with the source or target MAC addresses
-	if ((strncmp(source_mac, (const char*)&bytes[22], 6) != 0 && strncmp(target_mac, (const char*)&bytes[32], 6) != 0))
-		return 1;
-
-	return 0;
+	pthread_mutex_lock(mutex);
+	poison_t current_status = *status;
+	pthread_mutex_unlock(mutex);
+	return current_status;
 }
