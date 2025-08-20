@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "spoofer.h"
+#include "mysignal.h"
 
 static void packet_handler(u_char* user, const struct pcap_pkthdr* h, const u_char* bytes)
 {
@@ -7,38 +8,41 @@ static void packet_handler(u_char* user, const struct pcap_pkthdr* h, const u_ch
 
 	int recon = false;
 
-	// ARP (EtherType 0x0806)
-	if (bytes[12] == 0x08 && bytes[13] == 0x06) { // ARP frame detected
-		if (bytes[20] == 0x00 && bytes[21] == 0x01) {
-			printf("ARP request detected.\n");
-			recon = true;
-		}
-	}
+	// // ARP (EtherType 0x0806)
+	// if (bytes[12] == 0x08 && bytes[13] == 0x06) { // ARP frame detected
+	// 	if (bytes[20] == 0x00 && bytes[21] == 0x01) {
+	// 		if (memcmp(bytes + 6, s->source_mac, 6) == 0 || memcmp(bytes + 6, s->target_mac, 6) == 0)
+	// 			set_status(DO_NOTHING);
+	// 	}
+	// }
 
-	else if (bytes[12] == 0x08 && bytes[13] == 0x00) { // IPv4 frame detected
+	if (bytes[12] == 0x08 && bytes[13] == 0x00) { // IPv4 frame detected
 		uint8_t ihl = bytes[14] & 0x0F; // Internet Header Length
 		uint8_t protocol = bytes[23];   // Protocol field
 
 		if (protocol == 6) { // TCP
 			int ip_header_len = ihl * 4;
 			int tcp_offset = 14 + ip_header_len;
-			uint16_t src_port = (bytes[tcp_offset] << 8) | bytes[tcp_offset + 1];
-			uint16_t dst_port = (bytes[tcp_offset + 2] << 8) | bytes[tcp_offset + 3];
-			if (src_port == 21 || dst_port == 21 || src_port == 20 || dst_port == 20) {
-				printf("FTP packet detected! Src port: %u, Dst port: %u\n", src_port, dst_port);
-				recon = true;
+			uint8_t tcp_header_len = (bytes[tcp_offset + 12] >> 4) * 4;
+			int payload_offset = tcp_offset + tcp_header_len;
+			int payload_len = h->caplen - payload_offset;
+			if (payload_len > 0) {
+				// Check if src or dst port is 21 (FTP control)
+				uint16_t src_port = (bytes[tcp_offset] << 8) | bytes[tcp_offset + 1];
+				uint16_t dst_port = (bytes[tcp_offset + 2] << 8) | bytes[tcp_offset + 3];
+				if (src_port == 21 || dst_port == 21) {
+					set_status(DO_NOTHING);
+					const char* payload = (const char*)(bytes + payload_offset);
+					// Look for FTP commands
+					if (payload_len > 4 && (strncmp(payload, "STOR ", 5) == 0 || strncmp(payload, "RETR ", 5) == 0)) {
+						// Extract filename
+						char filename[128] = {0};
+						sscanf(payload + 5, "%127s", filename);
+						printf("FTP file transfer detected: %s\n\n", filename);
+					}
+				}
 			}
 		}
-	}
-
-	if (recon) {
-		printf("Destination MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-			bytes[0], bytes[1], bytes[2],
-			bytes[3], bytes[4], bytes[5]);
-		printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-			bytes[6], bytes[7], bytes[8],
-			bytes[9], bytes[10], bytes[11]);
-		printf("------------[%d]\n\n", s->count++);
 	}
 }
 

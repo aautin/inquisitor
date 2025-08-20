@@ -1,5 +1,7 @@
 #include <unistd.h>
+
 #include "spoofer.h"
+#include "mysignal.h"
 
 static char* get_arp_frame(
 	unsigned char destination_ip[4], unsigned char source_ip[4],
@@ -67,23 +69,34 @@ static void poison(state* s, pcap_t* pcap)
 	free(packet);
 }
 
-static void restore(state* s)
+static void restore(state* s, pcap_t* pcap)
 {
-	printf("Restoring ARP tables...\n");
+	static const unsigned char BCAST[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+	unsigned char* packet;
 
-	// for (int i = 0; i < 10; ++i) {
-	// 	// SOURCE->TARGET => SOURCE->INQUISITOR
-	// 	packet = get_arp_frame(s->source_ip, s->target_ip, s->source_mac, s->target_mac);
-	// 	pcap_sendpacket(pcap, packet, 42);
-	// 	free(packet);
+	for (int i = 0; i < 5; ++i) {
+		// Broadcast gratuitous ARP from target
+		packet = get_arp_frame(s->target_ip, s->target_ip, (unsigned char*) BCAST, s->target_mac);
+		pcap_sendpacket(pcap, packet, 42);
+		free(packet);
 		
-	// 	// TARGET->SOURCE => TARGET->INQUISITOR
-	// 	packet = get_arp_frame(s->target_ip, s->source_ip, s->target_mac, s->source_ip);
-	// 	pcap_sendpacket(pcap, packet, 42);
-	// 	free(packet);
-	
-	// 	usleep(500);
-	// }
+		// Broadcast gratuitous ARP from source
+		packet = get_arp_frame(s->source_ip, s->source_ip, (unsigned char*) BCAST, s->source_mac);
+		pcap_sendpacket(pcap, packet, 42);
+		free(packet);
+		
+		// SOURCE->TARGET => SOURCE->TARGET
+		packet = get_arp_frame(s->source_ip, s->target_ip, s->source_mac, s->target_mac);
+		pcap_sendpacket(pcap, packet, 42);
+		free(packet);
+		
+		// TARGET->SOURCE => TARGET->SOURCE
+		packet = get_arp_frame(s->target_ip, s->source_ip, s->target_mac, s->source_mac);
+		pcap_sendpacket(pcap, packet, 42);
+		free(packet);
+
+		usleep(500000); // 500 ms
+	}
 }
 
 void* spoof(void* arg)
@@ -91,14 +104,19 @@ void* spoof(void* arg)
 	state* s = ((spoofer_t*)arg)->state;
 	pcap_t* pcap = ((spoofer_t*)arg)->pcap;
 
-	while (get_status(&s->mutex, &s->status) == KEEP_GOING) {
+	set_signal();
+
+	while (get_status() == KEEP_GOING) {
 		poison(s, pcap);
-		usleep(200);
+		usleep(500000); // 500 ms
 	}
 
-	while (get_status(&s->mutex, &s->status) != RESTORE)
-		usleep(100);
-	
-	restore(s);
+	printf("Waiting for STOP signal...\n");
+	while (get_status() != STOP)
+		usleep(200000); // 200 ms
+
+	restore(s, pcap);
+	pcap_breakloop(pcap);
+
 	return NULL;
 }

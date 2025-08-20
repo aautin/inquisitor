@@ -76,9 +76,6 @@ int set_user(state** user, char** addresses, char* inquisitor_mac)
 	(*user)->is_source_poisoned = false;
 	(*user)->is_target_poisoned = false;
 
-	pthread_mutex_init(&(*user)->mutex, NULL);
-	(*user)->status = KEEP_GOING;
-
 	return 0;
 }
 
@@ -103,12 +100,4 @@ int set_pcap(pcap_t** pcap, char const* name)
 	}
 
 	return 0;
-}
-
-poison_t	get_status(pthread_mutex_t* mutex, poison_t* status)
-{
-	pthread_mutex_lock(mutex);
-	poison_t current_status = *status;
-	pthread_mutex_unlock(mutex);
-	return current_status;
 }
