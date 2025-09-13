@@ -83,11 +83,11 @@ int main(int argc, char **argv, char **envp)
 		return 1;
 	}
 
-	printf("source IP: %s\n", argv[1]);
-	printf("source MAC: %s\n", argv[2]);
-	printf("target IP: %s\n", argv[3]);
-	printf("target MAC: %s\n", argv[4]);
-	printf("Inquisitor MAC: %s\n", inquisitor_mac);
+	// printf("source IP: %s\n", argv[1]);
+	// printf("source MAC: %s\n", argv[2]);
+	// printf("target IP: %s\n", argv[3]);
+	// printf("target MAC: %s\n", argv[4]);
+	// printf("Inquisitor MAC: %s\n", inquisitor_mac);
 
 	pcap_if_t *alldevsp;
 	char error_buffer[PCAP_ERRBUF_SIZE];

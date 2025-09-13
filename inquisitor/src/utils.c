@@ -48,15 +48,15 @@ int set_user(state** user, char** addresses, char* inquisitor_mac)
 	}
 
 	// MAC-address raw bytes print for debugging
-	printf("Parsed source MAC: %d:%d:%d:%d:%d:%d\n",
-		(*user)->source_mac[0], (*user)->source_mac[1], (*user)->source_mac[2],
-		(*user)->source_mac[3], (*user)->source_mac[4], (*user)->source_mac[5]);
-	printf("Parsed target MAC: %d:%d:%d:%d:%d:%d\n",
-		(*user)->target_mac[0], (*user)->target_mac[1], (*user)->target_mac[2],
-		(*user)->target_mac[3], (*user)->target_mac[4], (*user)->target_mac[5]);
-	printf("Parsed inquisitor MAC: %d:%d:%d:%d:%d:%d\n",
-		(*user)->inquisitor_mac[0], (*user)->inquisitor_mac[1], (*user)->inquisitor_mac[2],
-		(*user)->inquisitor_mac[3], (*user)->inquisitor_mac[4], (*user)->inquisitor_mac[5]);
+	// printf("Parsed source MAC: %d:%d:%d:%d:%d:%d\n",
+	// 	(*user)->source_mac[0], (*user)->source_mac[1], (*user)->source_mac[2],
+	// 	(*user)->source_mac[3], (*user)->source_mac[4], (*user)->source_mac[5]);
+	// printf("Parsed target MAC: %d:%d:%d:%d:%d:%d\n",
+	// 	(*user)->target_mac[0], (*user)->target_mac[1], (*user)->target_mac[2],
+	// 	(*user)->target_mac[3], (*user)->target_mac[4], (*user)->target_mac[5]);
+	// printf("Parsed inquisitor MAC: %d:%d:%d:%d:%d:%d\n",
+	// 	(*user)->inquisitor_mac[0], (*user)->inquisitor_mac[1], (*user)->inquisitor_mac[2],
+	// 	(*user)->inquisitor_mac[3], (*user)->inquisitor_mac[4], (*user)->inquisitor_mac[5]);
 
 	// IP-address conversion into raw bytes
 	char** ip_source = split(addresses[0], '.');
@@ -67,10 +67,10 @@ int set_user(state** user, char** addresses, char* inquisitor_mac)
 	}
 
 	// IP-address raw bytes print for debugging
-	printf("Parsed source IP: %d.%d.%d.%d\n",
-		(*user)->source_ip[0], (*user)->source_ip[1], (*user)->source_ip[2], (*user)->source_ip[3]);
-	printf("Parsed target IP: %d.%d.%d.%d\n",
-		(*user)->target_ip[0], (*user)->target_ip[1], (*user)->target_ip[2], (*user)->target_ip[3]);
+	// printf("Parsed source IP: %d.%d.%d.%d\n",
+	// 	(*user)->source_ip[0], (*user)->source_ip[1], (*user)->source_ip[2], (*user)->source_ip[3]);
+	// printf("Parsed target IP: %d.%d.%d.%d\n",
+	// 	(*user)->target_ip[0], (*user)->target_ip[1], (*user)->target_ip[2], (*user)->target_ip[3]);
 
 	(*user)->count = 0;
 	(*user)->is_source_poisoned = false;
